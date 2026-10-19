@@ -1,0 +1,25 @@
+:root {
+  font-family: system-ui, sans-serif;
+  color-scheme: light dark;
+  line-height: 1.6;
+}
+
+body {
+  margin: 0;
+}
+
+.home {
+  display: grid;
+  place-items: center;
+  min-height: 100vh;
+  padding: 0 1.5rem;
+}
+
+.content {
+  max-width: 50rem;
+  text-align: center;
+}
+
+a {
+  color: inherit;
+}

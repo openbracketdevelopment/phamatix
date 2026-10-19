@@ -34,3 +34,9 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Local database and private uploads
+*.db
+*.db-*
+/media/
+/test-results/
