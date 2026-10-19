@@ -223,6 +223,8 @@ export interface Media {
    */
   visibility: 'public' | 'restricted';
   alt: string;
+  prefix?: string | null;
+  _objectKey?: string | null;
   updatedAt: string;
   createdAt: string;
   _status?: ('draft' | 'published') | null;
@@ -486,6 +488,8 @@ export interface MediaSelect<T extends boolean = true> {
   site?: T;
   visibility?: T;
   alt?: T;
+  prefix?: T;
+  _objectKey?: T;
   updatedAt?: T;
   createdAt?: T;
   _status?: T;

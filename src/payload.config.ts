@@ -39,12 +39,13 @@ export default buildConfig({
   }),
   sharp,
   upload: { limits: { fileSize: 10 * 1024 * 1024 } },
-  plugins: s3
-    ? [
-        s3Storage({
-          ...s3,
-          collections: { media: true },
-        }),
-      ]
-    : [],
+  plugins: [
+    s3Storage({
+      bucket: s3?.bucket ?? '',
+      config: s3?.config ?? {},
+      enabled: Boolean(s3),
+      alwaysInsertFields: true,
+      collections: { media: true },
+    }),
+  ],
 })

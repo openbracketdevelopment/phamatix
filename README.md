@@ -304,6 +304,8 @@ Payload access checks; do not set `disablePayloadAccessControl=true`, expose
 public bucket URLs, or bypass file routes through a CDN. Existing local objects
 are not automatically migrated to S3: copy them and test before switching.
 S3 functionality needs real provider credentials and has not been verified here.
+The storage plugin always registers its media schema fields, even with S3 off,
+so the committed migrations support both modes without production schema push.
 
 **Backups:** schedule SQLite online backups (SQLite CLI `.backup`) or stop the
 CMS before copying the database; a live raw copy can omit journal/WAL changes.
@@ -341,6 +343,8 @@ IDs, create/update/delete/bulk/version operations; role/membership escalation;
 cross-site draft relationships; assigned editor publishing; website read-only,
 published/non-restricted access; anonymous denial; inactive sites; and shared
 content. Test credentials are generated at runtime, not committed.
+An additional schema test checks that local and S3 modes register identical
+media fields without contacting a storage provider.
 
 ### Dependency audit status
 
