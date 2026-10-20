@@ -258,6 +258,18 @@ describe('server-side site boundaries', () => {
           data: { hero: image.id },
         }),
       ).rejects.toThrow('Related content must belong to the same site.')
+      await expect(
+        payload.update({
+          collection: 'pages',
+          id: home.id,
+          user: admin,
+          overrideAccess: false,
+          draft: true,
+          data: {
+            layout: [{ blockType: 'gallery', images: [{ image: image.id }] }],
+          },
+        }),
+      ).rejects.toThrow('Related content must belong to the same site.')
       await payload.delete({ collection: 'media', id: image.id })
     })
   })
@@ -348,6 +360,36 @@ describe('server-side site boundaries', () => {
         },
       }),
     ).rejects.toThrow('Related content must belong to the same site.')
+
+    const category = await payload.create({
+      collection: 'categories',
+      user: admin,
+      overrideAccess: false,
+      data: { site: bravo.id, name: 'Bravo category', slug: 'bravo-category' },
+    })
+    await expect(
+      payload.create({
+        collection: 'pages',
+        user: admin,
+        overrideAccess: false,
+        draft: true,
+        data: {
+          site: alpha.id,
+          title: 'Bad category reference',
+          slug: 'bad-category-reference',
+          body: 'Cross-site category',
+          categories: [category.id],
+        },
+      }),
+    ).rejects.toThrow('Related content must belong to the same site.')
+    await expect(
+      payload.findByID({
+        collection: 'categories',
+        id: category.id,
+        user: editor,
+        overrideAccess: false,
+      }),
+    ).rejects.toThrow()
   })
 
   it('allows assigned editors to create, publish and edit their own content', async () => {
@@ -367,6 +409,37 @@ describe('server-side site boundaries', () => {
     })
     expect(updated._status).toBe('published')
     await payload.delete({ collection: 'pages', id: page.id, user: editor, overrideAccess: false })
+  })
+
+  it('allows editors to create site categories and reorderable page-builder blocks', async () => {
+    const category = await payload.create({
+      collection: 'categories',
+      user: editor,
+      overrideAccess: false,
+      data: { site: alpha.id, name: 'News', slug: 'news' },
+    })
+    const page = await payload.create({
+      collection: 'pages',
+      user: editor,
+      overrideAccess: false,
+      draft: true,
+      data: {
+        site: alpha.id,
+        title: 'Flexible page',
+        slug: 'flexible-page',
+        categories: [category.id],
+        layout: [
+          { blockType: 'hero', heading: 'Welcome', subheading: 'A subtitle' },
+          { blockType: 'text', text: 'Main text', subText: 'Supporting text' },
+          { blockType: 'gallery', heading: 'Photos', images: [] },
+        ],
+      },
+    })
+
+    expect(page.categories?.map((item) => (typeof item === 'number' ? item : item.id))).toEqual([
+      category.id,
+    ])
+    expect(page.layout?.map((block) => block.blockType)).toEqual(['hero', 'text', 'gallery'])
   })
 })
 

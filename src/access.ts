@@ -16,6 +16,24 @@ export const siteIDs = (user: Partial<User> | null | undefined) =>
   (user?.sites ?? []).map(relationshipID)
 
 export const adminOnly: Access = ({ req }) => isAdmin(req.user)
+export const siteRecordRead: Access = async ({ req }) => {
+  const { user } = req
+  if (isAdmin(user)) return true
+  if (!user) return false
+  const ids = siteIDs(user)
+  if (user.role === 'editor') return { site: { in: ids } }
+  if (user.role !== 'website' || !ids.length) return false
+  const sites = await req.payload.find({
+    collection: 'sites',
+    where: { and: [{ id: { in: ids } }, { active: { equals: true } }] },
+    depth: 0,
+    pagination: false,
+    overrideAccess: true,
+    req,
+  })
+  return { site: { in: sites.docs.map((site) => site.id) } }
+}
+
 export const siteRead: Access = async ({ req }): Promise<AccessResult> => {
   const { user } = req
   if (isAdmin(user)) return true
@@ -105,16 +123,40 @@ export const enforceOwnership: CollectionBeforeChangeHook = async ({
   if (!isAdmin(req.user) && !siteIDs(req.user).includes(site)) {
     throw new APIError('You are not assigned to this site.', 403)
   }
-  const references: { collection: 'pages' | 'media'; id: number }[] = []
+  const references: { collection: 'pages' | 'media' | 'categories'; id: number }[] = []
+  const addReferences = (collection: 'pages' | 'media' | 'categories', values: unknown) => {
+    const items = Array.isArray(values) ? values : [values]
+    for (const value of items) {
+      const id =
+        typeof value === 'number'
+          ? value
+          : typeof value === 'object' &&
+              value !== null &&
+              'id' in value &&
+              typeof value.id === 'number'
+            ? value.id
+            : undefined
+      if (id !== undefined) references.push({ collection, id })
+    }
+  }
   if (collection.slug === 'pages' && doc.hero) {
-    references.push({ collection: 'media', id: relationshipID(doc.hero) })
+    addReferences('media', doc.hero)
+  }
+  if (collection.slug === 'pages') {
+    addReferences('categories', doc.categories)
+    for (const block of doc.layout ?? []) {
+      if (block.blockType === 'hero') addReferences('media', block.image)
+      if (block.blockType === 'gallery') {
+        for (const item of block.images ?? []) addReferences('media', item.image)
+      }
+    }
   }
   if (collection.slug === 'seo-settings' && doc.image) {
-    references.push({ collection: 'media', id: relationshipID(doc.image) })
+    addReferences('media', doc.image)
   }
   if (collection.slug === 'navigation') {
     for (const link of doc.links ?? []) {
-      if (link.page) references.push({ collection: 'pages', id: relationshipID(link.page) })
+      if (link.page) addReferences('pages', link.page)
     }
   }
   for (const reference of references) {

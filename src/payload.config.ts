@@ -8,7 +8,7 @@ import { s3Storage } from '@payloadcms/storage-s3'
 import { Users } from './collections/Users'
 import { Media } from './collections/Media'
 import { Sites } from './collections/Sites'
-import { Navigation, Pages, SEOSettings, SharedContent } from './collections/Content'
+import { Categories, Navigation, Pages, SEOSettings, SharedContent } from './collections/Content'
 import { databaseURL, origins, s3, secret, serverURL } from './environment'
 
 const filename = fileURLToPath(import.meta.url)
@@ -25,7 +25,7 @@ export default buildConfig({
       baseDir: path.resolve(dirname),
     },
   },
-  collections: [Users, Sites, Pages, Navigation, Media, SEOSettings, SharedContent],
+  collections: [Users, Sites, Pages, Categories, Navigation, Media, SEOSettings, SharedContent],
   secret,
   typescript: {
     outputFile: path.resolve(dirname, 'payload-types.ts'),

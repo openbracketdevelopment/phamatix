@@ -1,5 +1,15 @@
 import type { CollectionConfig } from 'payload'
-import { adminOnly, enforceOwnership, siteAccess, siteFields } from '../access'
+import {
+  adminOnly,
+  enforceOwnership,
+  isAdmin,
+  siteAccess,
+  siteFields,
+  siteRecordRead,
+  siteIDs,
+  siteWrite,
+  siteCreate,
+} from '../access'
 
 const siteContent = {
   admin: { group: 'Site content', useAsTitle: 'title' },
@@ -22,10 +32,96 @@ export const Pages: CollectionConfig = {
       validate: (value: string | null | undefined) =>
         /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(value ?? '') || 'Use a lowercase URL-safe slug.',
     },
-    { name: 'body', type: 'textarea', required: true },
+    {
+      name: 'categories',
+      type: 'relationship',
+      relationTo: 'categories',
+      hasMany: true,
+      filterOptions: ({ data }) =>
+        data?.site
+          ? {
+              site: {
+                equals:
+                  typeof data.site === 'object' && data.site !== null ? data.site.id : data.site,
+              },
+            }
+          : true,
+    },
+    {
+      name: 'body',
+      type: 'textarea',
+      admin: { description: 'Optional plain-text content for pages without layout blocks.' },
+    },
     { name: 'hero', type: 'upload', relationTo: 'media' },
+    {
+      name: 'layout',
+      type: 'blocks',
+      blocks: [
+        {
+          slug: 'hero',
+          labels: { singular: 'Hero', plural: 'Hero sections' },
+          fields: [
+            { name: 'heading', type: 'text', required: true },
+            { name: 'subheading', type: 'text' },
+            { name: 'image', type: 'upload', relationTo: 'media' },
+          ],
+        },
+        {
+          slug: 'text',
+          labels: { singular: 'Text section', plural: 'Text sections' },
+          fields: [
+            { name: 'text', type: 'textarea', required: true },
+            { name: 'subText', type: 'textarea' },
+          ],
+        },
+        {
+          slug: 'gallery',
+          labels: { singular: 'Gallery', plural: 'Galleries' },
+          fields: [
+            { name: 'heading', type: 'text' },
+            {
+              name: 'images',
+              type: 'array',
+              fields: [{ name: 'image', type: 'upload', relationTo: 'media', required: true }],
+            },
+          ],
+        },
+      ],
+    },
     { name: 'seoTitle', type: 'text' },
     { name: 'seoDescription', type: 'textarea' },
+  ],
+}
+
+export const Categories: CollectionConfig = {
+  slug: 'categories',
+  admin: { group: 'Site content', useAsTitle: 'name' },
+  access: {
+    create: siteCreate,
+    read: siteRecordRead,
+    update: siteWrite,
+    delete: siteWrite,
+  },
+  hooks: { beforeChange: [enforceOwnership] },
+  indexes: [{ fields: ['site', 'slug'], unique: true }],
+  fields: [
+    {
+      name: 'site',
+      type: 'relationship',
+      relationTo: 'sites',
+      required: true,
+      index: true,
+      admin: { position: 'sidebar' },
+      filterOptions: ({ user }) => (isAdmin(user) ? true : { id: { in: siteIDs(user) } }),
+    },
+    { name: 'name', type: 'text', required: true },
+    {
+      name: 'slug',
+      type: 'text',
+      required: true,
+      validate: (value: string | null | undefined) =>
+        /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(value ?? '') || 'Use a lowercase URL-safe slug.',
+    },
   ],
 }
 
